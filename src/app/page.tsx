@@ -77,7 +77,7 @@ export default function DashboardPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: "expense",
-      amount: undefined,
+      amount: 0,
       notes: "",
       tagId: "",
       date: new Date(),
@@ -99,7 +99,7 @@ export default function DashboardPage() {
     });
     form.reset({
       type: "expense",
-      amount: undefined,
+      amount: 0,
       notes: "",
       tagId: "",
       date: new Date(),
@@ -340,3 +340,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+    
