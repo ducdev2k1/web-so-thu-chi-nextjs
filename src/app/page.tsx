@@ -73,18 +73,25 @@ export default function DashboardPage() {
 
   const balance = React.useMemo(() => totalIncome - totalExpense, [totalIncome, totalExpense]);
 
+  const defaultExpenseTagId = initialTags.find(t => t.type === 'expense')?.id || '';
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: "expense",
-      amount: 0,
+      amount: undefined,
       notes: "",
-      tagId: "",
+      tagId: defaultExpenseTagId,
       date: new Date(),
     },
   });
 
   const watchType = form.watch("type");
+
+  React.useEffect(() => {
+    const firstTagForType = tags.find(t => t.type === watchType)?.id || '';
+    form.setValue('tagId', firstTagForType);
+  }, [watchType, tags, form]);
 
   function onSubmit(values: FormValues) {
     const newTransaction: Transaction = {
@@ -97,11 +104,13 @@ export default function DashboardPage() {
       title: "Success",
       description: "Transaction added successfully.",
     });
+    
+    const firstTagForType = tags.find(t => t.type === values.type)?.id || '';
     form.reset({
-      type: "expense",
-      amount: 0,
+      type: values.type,
+      amount: undefined,
       notes: "",
-      tagId: "",
+      tagId: firstTagForType,
       date: new Date(),
     });
   }
@@ -139,7 +148,7 @@ export default function DashboardPage() {
     return (
       <RadioGroup
         onValueChange={field.onChange}
-        defaultValue={field.value}
+        value={field.value}
         className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"
       >
         {filteredTags.map((tag) => (
@@ -180,10 +189,7 @@ export default function DashboardPage() {
                             render={({ field }) => (
                             <FormItem>
                                 <FormControl>
-                                <Tabs defaultValue={field.value} onValueChange={(value) => {
-                                  field.onChange(value)
-                                  form.setValue('tagId', '');
-                                }} className="w-full">
+                                <Tabs value={field.value} onValueChange={field.onChange} className="w-full">
                                     <TabsList className="grid w-full grid-cols-2">
                                         <TabsTrigger value="expense">Expense</TabsTrigger>
                                         <TabsTrigger value="income">Income</TabsTrigger>
@@ -192,37 +198,6 @@ export default function DashboardPage() {
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="amount"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Amount</FormLabel>
-                                <FormControl>
-                                <div className="relative">
-                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <span className="text-muted-foreground sm:text-sm">$</span>
-                                    </div>
-                                    <Input type="number" placeholder="0.00" {...field} className="pl-7 text-lg" step="0.01"/>
-                                </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="tagId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    <FormControl>
-                                        <TagSelector field={field}/>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
                             )}
                         />
                          <FormField
@@ -263,6 +238,24 @@ export default function DashboardPage() {
                             </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="amount"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Amount</FormLabel>
+                                <FormControl>
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span className="text-muted-foreground sm:text-sm">$</span>
+                                    </div>
+                                    <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7 text-lg" step="0.01"/>
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                          <FormField
                             control={form.control}
                             name="notes"
@@ -274,6 +267,19 @@ export default function DashboardPage() {
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="tagId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Category</FormLabel>
+                                    <FormControl>
+                                        <TagSelector field={field}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
                         <Button type="submit" className="w-full">Save Transaction</Button>
