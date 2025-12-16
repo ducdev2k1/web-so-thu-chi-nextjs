@@ -30,6 +30,9 @@ export function Header() {
             <Link href="/statistics" className={navLinkClasses('/statistics')}>
               Statistics
             </Link>
+            <Link href="/calendar" className={navLinkClasses('/calendar')}>
+              Calendar
+            </Link>
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
