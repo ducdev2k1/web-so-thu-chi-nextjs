@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay, isToday } from "date-fns";
 import { CalendarIcon, PlusCircle, ChevronLeft, ChevronRight, ShoppingBasket, Landmark } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -59,10 +59,38 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
+    const tag = tags.find((t) => t.id === transaction.tagId);
+    if (!tag) return null;
+    const Icon = tag.icon;
+    return (
+      <div className="flex items-center p-3 hover:bg-muted/50 rounded-lg transition-colors -mx-3">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="bg-muted p-2 rounded-full">
+            <Icon className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">{tag.name}</p>
+            <p className="text-sm text-muted-foreground">{transaction.notes}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className={cn(
+            "font-semibold text-base",
+            transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500 dark:text-red-400',
+          )}>
+            {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+
 export default function CalendarPage() {
   const [transactions, setTransactions] = React.useState<Transaction[]>(initialTransactions);
   const [isDialogOpen, setDialogOpen] = React.useState(false);
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
+  const [activeDate, setActiveDate] = React.useState<Date | null>(new Date());
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
   const { toast } = useToast();
@@ -107,8 +135,13 @@ export default function CalendarPage() {
     return grouped;
   }, [daysInMonth, transactions]);
 
+  const selectedDayTransactions = React.useMemo(() => {
+    if (!activeDate) return [];
+    return transactions.filter(t => isSameDay(t.date, activeDate)).sort((a,b) => b.date.getTime() - a.date.getTime());
+  }, [transactions, activeDate]);
+
   function handleAddTransactionForDate(date: Date) {
-    setSelectedDate(date);
+    setActiveDate(date);
     form.reset({
       type: "expense",
       amount: 0,
@@ -130,7 +163,6 @@ export default function CalendarPage() {
       description: "Transaction added successfully.",
     });
     setDialogOpen(false);
-    setSelectedDate(null);
   }
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -148,7 +180,7 @@ export default function CalendarPage() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-           <Button onClick={() => handleAddTransactionForDate(new Date())}>
+           <Button onClick={() => handleAddTransactionForDate(activeDate || new Date())}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Transaction
           </Button>
@@ -168,13 +200,22 @@ export default function CalendarPage() {
           {daysInMonth.map(day => {
             const dayKey = format(day, "yyyy-MM-dd");
             const data = transactionsByDay[dayKey];
+            const isSelected = activeDate && isSameDay(day, activeDate);
+            
             return (
               <div
                 key={day.toString()}
-                className="h-36 border-r border-b p-2 flex flex-col relative group cursor-pointer"
-                onClick={() => handleAddTransactionForDate(day)}
+                className={cn(
+                    "h-36 border-r border-b p-2 flex flex-col relative group cursor-pointer transition-colors",
+                    isSelected ? "bg-muted" : "hover:bg-muted/50",
+                    isToday(day) && !isSelected && "bg-blue-50 dark:bg-blue-900/10"
+                )}
+                onClick={() => setActiveDate(day)}
               >
-                <time dateTime={dayKey} className="font-semibold">{format(day, "d")}</time>
+                <time dateTime={dayKey} className={cn(
+                    "font-semibold",
+                    isToday(day) && "text-primary font-bold"
+                )}>{format(day, "d")}</time>
                 {data && data.count > 0 && (
                   <div className="mt-1 text-xs space-y-1 overflow-hidden">
                     {data.income > 0 && (
@@ -189,13 +230,33 @@ export default function CalendarPage() {
                     )}
                   </div>
                 )}
-                 <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleAddTransactionForDate(day)}>
                     <PlusCircle className="h-4 w-4"/>
                 </Button>
               </div>
             );
           })}
         </div>
+
+        {activeDate && (
+             <Card className="mt-8">
+                <CardHeader>
+                    <CardTitle>Transactions for {format(activeDate, "PPP")}</CardTitle>
+                    <CardDescription>All income and expenses logged for this day.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {selectedDayTransactions.length > 0 ? (
+                        <div className="divide-y divide-border -mx-3">
+                            {selectedDayTransactions.map(t => <TransactionItem key={t.id} transaction={t} />)}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <p className="text-muted-foreground">No transactions for this day.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
@@ -203,7 +264,7 @@ export default function CalendarPage() {
           <DialogHeader>
             <DialogTitle>Add Transaction</DialogTitle>
             <DialogDescription>
-              {selectedDate ? `Adding a new transaction for ${format(selectedDate, 'PPP')}` : 'Add a new income or expense.'}
+              {activeDate ? `Adding a new transaction for ${format(activeDate, 'PPP')}` : 'Add a new income or expense.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
