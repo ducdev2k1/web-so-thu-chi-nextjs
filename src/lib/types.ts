@@ -8,6 +8,7 @@ export type Tag = {
   name: string;
   icon: React.ComponentType<LucideProps>;
   type: TransactionType | 'all';
+  color?: string;
 };
 
 export interface Transaction {

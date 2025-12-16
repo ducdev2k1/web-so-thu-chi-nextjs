@@ -43,8 +43,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { transactions as initialTransactions, tags } from "@/lib/data";
-import type { Transaction, TransactionType } from "@/lib/types";
+import { transactions as initialTransactions, tags as initialTags } from "@/lib/data";
+import type { Transaction, TransactionType, Tag } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -59,15 +59,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
+const TransactionItem = ({ transaction, tags }: { transaction: Transaction, tags: Tag[] }) => {
     const tag = tags.find((t) => t.id === transaction.tagId);
     if (!tag) return null;
     const Icon = tag.icon;
     return (
       <div className="flex items-center p-3 hover:bg-muted/50 rounded-lg transition-colors -mx-3">
         <div className="flex items-center gap-4 flex-1">
-          <div className="bg-muted p-2 rounded-full">
-            <Icon className="h-5 w-5 text-muted-foreground" />
+          <div className={cn("bg-muted p-2 rounded-full", tag.color && 'bg-opacity-20')}>
+            <Icon className={cn("h-5 w-5 text-muted-foreground", tag.color)} />
           </div>
           <div className="flex-1">
             <p className="font-medium">{tag.name}</p>
@@ -89,6 +89,7 @@ const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
 
 export default function CalendarPage() {
   const [transactions, setTransactions] = React.useState<Transaction[]>(initialTransactions);
+  const [tags, setTags] = React.useState<Tag[]>(initialTags);
   const [isDialogOpen, setDialogOpen] = React.useState(false);
   const [activeDate, setActiveDate] = React.useState<Date | null>(new Date());
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
@@ -247,7 +248,7 @@ export default function CalendarPage() {
                 <CardContent>
                     {selectedDayTransactions.length > 0 ? (
                         <div className="divide-y divide-border -mx-3">
-                            {selectedDayTransactions.map(t => <TransactionItem key={t.id} transaction={t} />)}
+                            {selectedDayTransactions.map(t => <TransactionItem key={t.id} transaction={t} tags={tags} />)}
                         </div>
                     ) : (
                         <div className="text-center py-12">

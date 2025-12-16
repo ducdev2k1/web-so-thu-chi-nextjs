@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { transactions as initialTransactions, tags } from "@/lib/data";
+import { transactions as initialTransactions, tags as initialTags } from "@/lib/data";
 import type { Transaction, Tag } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +55,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = React.useState<Transaction[]>(initialTransactions);
+  const [tags, setTags] = React.useState<Tag[]>(initialTags);
 
   const { toast } = useToast();
 
@@ -112,8 +113,8 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center p-3 hover:bg-muted/50 rounded-lg transition-colors -mx-3">
         <div className="flex items-center gap-4 flex-1">
-          <div className="bg-muted p-2 rounded-full">
-            <Icon className="h-5 w-5 text-muted-foreground" />
+          <div className={cn("bg-muted p-2 rounded-full", tag.color && 'bg-opacity-20')}>
+            <Icon className={cn("h-5 w-5 text-muted-foreground", tag.color)} />
           </div>
           <div className="flex-1">
             <p className="font-medium">{tag.name}</p>
@@ -151,7 +152,7 @@ export default function DashboardPage() {
                   field.value === tag.id && "border-primary"
                 )}
               >
-                <tag.icon className="w-6 h-6 mb-1" />
+                <tag.icon className={cn("w-6 h-6 mb-1", tag.color)} />
                 <span className="text-xs text-center">{tag.name}</span>
               </div>
             </FormLabel>
